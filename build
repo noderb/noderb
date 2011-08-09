@@ -1,0 +1,15 @@
+cd ext/noderb_extension
+
+rm -rf libuv
+
+git clone git://github.com/joyent/libuv.git libuv
+
+cd libuv
+
+git reset --hard 75c109055d330bdd6177
+
+rm -rf .git
+
+cd ../../..
+
+gem build noderb.gemspec

@@ -1,0 +1,16 @@
+*.swp
+*.o
+*.lo
+*.la
+*.a
+*.opensdf
+*.orig
+*.sdf
+*.suo
+/out/
+/build/gyp
+
+/test/run-tests
+/test/run-tests.dSYM
+/test/run-benchmarks
+/test/run-benchmarks.dSYM
