@@ -1,4 +1,5 @@
 /* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
  * deal in the Software without restriction, including without limitation the
@@ -18,43 +19,34 @@
  * IN THE SOFTWARE.
  */
 
+#include <assert.h>
+
 #include "uv.h"
-
-#include <stdio.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <sys/time.h>
+#include "../uv-common.h"
+#include "internal.h"
 
 
-uint64_t uv_hrtime() {
-  return (gethrtime());
-}
+sRtlNtStatusToDosError pRtlNtStatusToDosError;
+sNtQueryInformationFile pNtQueryInformationFile;
 
 
-/*
- * We could use a static buffer for the path manipulations that we need outside
- * of the function, but this function could be called by multiple consumers and
- * we don't want to potentially create a race condition in the use of snprintf.
- */
-int uv_exepath(char* buffer, size_t* size) {
-  ssize_t res;
-  pid_t pid;
-  char buf[128];
+void uv_winapi_init() {
+  HMODULE module;
 
-  if (buffer == NULL)
-    return (-1);
+  module = GetModuleHandleA("ntdll.dll");
+  if (module == NULL) {
+    uv_fatal_error(GetLastError(), "GetModuleHandleA");
+  }
 
-  if (size == NULL)
-    return (-1);
+  pRtlNtStatusToDosError = (sRtlNtStatusToDosError) GetProcAddress(module,
+      "RtlNtStatusToDosError");
+  if (pRtlNtStatusToDosError == NULL) {
+    uv_fatal_error(GetLastError(), "GetProcAddress");
+  }
 
-  pid = getpid();
-  (void) snprintf(buf, sizeof (buf), "/proc/%d/path/a.out", pid);
-  res = readlink(buf, buffer, *size - 1);
-
-  if (res < 0)
-    return (res);
-
-  buffer[res] = '\0';
-  *size = res;
-  return (0);
+  pNtQueryInformationFile = (sNtQueryInformationFile) GetProcAddress(module,
+      "NtQueryInformationFile");
+  if (pNtQueryInformationFile == NULL) {
+    uv_fatal_error(GetLastError(), "GetProcAddress");
+  }
 }

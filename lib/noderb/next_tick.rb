@@ -1,9 +1,10 @@
 module NodeRb
+
   class << self
     
     def next_tick &block
       ( @next_tick ||= [] ) << block
-      NodeRb.native_next_tick
+      NodeRb.send(:next_tick_native)
     end
     
     def next_tick_execute
