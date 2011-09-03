@@ -49,7 +49,7 @@ VALUE nodeRb_timers_once(VALUE self, VALUE timeout, VALUE repeat, VALUE handler)
     }
     data->target = rb_num2long(rb_obj_id(handler));
     // Initialize
-    uv_timer_init(handle);
+    uv_timer_init1(uv_default_loop(), handle);
     handle->data = data;
     // Save handle
     rb_iv_set(handler, "@_handle", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, handle));

@@ -31,7 +31,7 @@ VALUE nodeRb_dns_resolve(VALUE self, VALUE host, VALUE callback){
     // Save data
     data->target = rb_num2long(rb_obj_id(callback));
     // Resolve
-    uv_getaddrinfo(handle, nodeRb_dns_resolved, rb_string_value_cstr(&host), NULL, NULL);
+    uv_getaddrinfo(uv_default_loop(), handle, nodeRb_dns_resolved, rb_string_value_cstr(&host), NULL, NULL);
     // Save callback
     handle->data = data;
 }

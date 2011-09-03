@@ -30,7 +30,7 @@ VALUE nodeRb_process_write(VALUE self, VALUE data) {
     uv_write_t write_req;
     uv_buf_t buf;
     // Get data to write from Ruby
-    char* buffer = rb_string_value_cstr(&data);
+    char* buffer = rb_string_value_ptr(&data);
     // Get process handle
     nodeRb_process_handle* process_handle = (nodeRb_process_handle*) handle->data;
     // Write data to stream
@@ -90,12 +90,12 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     nodeRb_register_instance(clazz);
     // stdin
     uv_pipe_t* stdin = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(stdin);
+    uv_pipe_init(uv_default_loop(), stdin);
     options.stdin_stream = stdin;
     process_handle->stdin = stdin;
     // stdout
     uv_pipe_t* stdout = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(stdout);
+    uv_pipe_init(uv_default_loop(), stdout);
     options.stdout_stream = stdout;
     nodeRb_process_read_handle* stdout_handle = malloc(sizeof(nodeRb_process_read_handle));
     stdout_handle->target = process_handle->target;
@@ -104,7 +104,7 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     process_handle->stdout = stdout;
     // stderr
     uv_pipe_t* stderr = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(stderr);
+    uv_pipe_init(uv_default_loop(), stderr);
     options.stderr_stream = stderr;
     nodeRb_process_read_handle* stderr_handle = malloc(sizeof(nodeRb_process_read_handle));
     stderr_handle->target = process_handle->target;
@@ -117,7 +117,7 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     // Save reference into Ruby object
     rb_iv_set(clazz, "@_handle", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, handle));
     // spawn process
-    uv_spawn(handle, options);
+    uv_spawn(uv_default_loop(), handle, options);
     // Listen to stdout/err
     uv_read_start((uv_stream_t*) stdout, nodeRb_read_alloc, nodeRb_read);
     uv_read_start((uv_stream_t*) stderr, nodeRb_read_alloc, nodeRb_read);

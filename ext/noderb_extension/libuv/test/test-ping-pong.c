@@ -51,7 +51,7 @@ typedef struct {
 void pinger_try_read(pinger_t* pinger);
 
 
-static uv_buf_t alloc_cb(uv_stream_t* tcp, size_t size) {
+static uv_buf_t alloc_cb(uv_handle_t* handle, size_t size) {
   uv_buf_t buf;
   buf.base = (char*)malloc(size);
   buf.len = size;
@@ -94,13 +94,13 @@ static void pinger_write_ping(pinger_t* pinger) {
 
 
 static void pinger_read_cb(uv_stream_t* stream, ssize_t nread, uv_buf_t buf) {
-  unsigned int i;
+  ssize_t i;
   pinger_t* pinger;
 
   pinger = (pinger_t*)stream->data;
 
   if (nread < 0) {
-    ASSERT(uv_last_error().code == UV_EOF);
+    ASSERT(uv_last_error(uv_default_loop()).code == UV_EOF);
 
     puts("got EOF");
 
@@ -155,7 +155,7 @@ static void tcp_pinger_v6_new() {
   pinger->pongs = 0;
 
   /* Try to connec to the server and do NUM_PINGS ping-pongs. */
-  r = uv_tcp_init(&pinger->tcp);
+  r = uv_tcp_init(uv_default_loop(), &pinger->tcp);
   pinger->tcp.data = pinger;
   ASSERT(!r);
 
@@ -180,7 +180,7 @@ static void tcp_pinger_new() {
   pinger->pongs = 0;
 
   /* Try to connec to the server and do NUM_PINGS ping-pongs. */
-  r = uv_tcp_init(&pinger->tcp);
+  r = uv_tcp_init(uv_default_loop(), &pinger->tcp);
   pinger->tcp.data = pinger;
   ASSERT(!r);
 
@@ -204,7 +204,7 @@ static void pipe_pinger_new() {
   pinger->pongs = 0;
 
   /* Try to connec to the server and do NUM_PINGS ping-pongs. */
-  r = uv_pipe_init(&pinger->pipe);
+  r = uv_pipe_init(uv_default_loop(), &pinger->pipe);
   pinger->pipe.data = pinger;
   ASSERT(!r);
 
@@ -224,7 +224,7 @@ TEST_IMPL(tcp_ping_pong) {
   uv_init();
 
   tcp_pinger_new();
-  uv_run();
+  uv_run(uv_default_loop());
 
   ASSERT(completed_pingers == 1);
 
@@ -236,7 +236,7 @@ TEST_IMPL(tcp_ping_pong_v6) {
   uv_init();
 
   tcp_pinger_v6_new();
-  uv_run();
+  uv_run(uv_default_loop());
 
   ASSERT(completed_pingers == 1);
 
@@ -248,7 +248,7 @@ TEST_IMPL(pipe_ping_pong) {
   uv_init();
 
   pipe_pinger_new();
-  uv_run();
+  uv_run(uv_default_loop());
 
   ASSERT(completed_pingers == 1);
 

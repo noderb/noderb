@@ -20,10 +20,12 @@ typedef struct {
     uv_buf_t buf;
 } write_req_t;
 
-uv_buf_t nodeRb_read_alloc(uv_stream_t* handle, size_t suggested_size);
+uv_buf_t nodeRb_read_alloc(uv_handle_t* handle, size_t suggested_size);
 void nodeRb_read(uv_stream_t* uv_handle, ssize_t nread, uv_buf_t buf);
 void nodeRb_write(uv_stream_t* handle, char* data, size_t len);
 void nodeRb_after_write(uv_write_t* req, int status);
+VALUE nodeRb_startProxy(VALUE self, VALUE source, VALUE target);
+VALUE nodeRb_stopProxy(VALUE self, VALUE source);
 
 #ifdef	__cplusplus
 }

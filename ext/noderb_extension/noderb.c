@@ -6,6 +6,8 @@
 #include <noderb_dns.h>
 #include <noderb_timers.h>
 #include <noderb_tools.h>
+//#include <noderb_defer.h>
+#include <noderb_fs.h>
 
 // Core NodeRb module
 VALUE nodeRb;
@@ -40,21 +42,31 @@ void Init_noderb_extension() {
     rb_define_method(nodeRbProcess, "kill_process", nodeRb_process_kill, 1);
     // Define utility methods
     rb_define_singleton_method(nodeRb, "next_tick_native", nodeRb_nextTick, 0);
+    rb_define_singleton_method(nodeRb, "start_proxy", nodeRb_startProxy, 2);
+    rb_define_singleton_method(nodeRb, "stop_proxy", nodeRb_stopProxy, 1);
     // DNS related methods
     rb_define_singleton_method(nodeRb, "resolve_native", nodeRb_dns_resolve, 2);
     // Timer related functions
     rb_define_singleton_method(nodeRb, "once_native", nodeRb_timers_once, 3);
     VALUE timer = rb_define_module_under(nodeRb, "Timer");
     rb_define_method(timer, "stop_timer", nodeRb_timers_stop, 0);
+    // Defer functions
+    //rb_define_singleton_method(nodeRb, "defer_native", nodeRb_defer, 2);
+    // Filesystem functions
+    VALUE nodeRbFile = rb_define_module_under(nodeRb, "File");
+    rb_define_method(nodeRbFile, "open_native", nodeRb_fs_open, 3);
+    rb_define_method(nodeRbFile, "close_native", nodeRb_fs_close, 0);
+    rb_define_method(nodeRbFile, "read_native", nodeRb_fs_read, 2);
+    rb_define_method(nodeRbFile, "write_native", nodeRb_fs_write, 1);
     // Define starting methods
     rb_define_singleton_method(nodeRb, "start", nodeRb_start, 0);
     rb_define_singleton_method(nodeRb, "start_server_native", nodeRb_tcp_startServer, 3);
     rb_define_singleton_method(nodeRb, "start_client_native", nodeRb_tcp_startClient, 3);
     rb_define_singleton_method(nodeRb, "start_process", nodeRb_startProcess, 5);
     // Memory management
-    rb_iv_set(nodeRb, "@instances", rb_ary_new());
-    rb_define_singleton_method(nodeRb, "register_instance", nodeRb_registerInstance, 1);
-    rb_define_singleton_method(nodeRb, "unregister_instance", nodeRb_unregisterInstance, 1);
+//    rb_iv_set(nodeRb, "@instances", rb_ary_new());
+//    rb_define_singleton_method(nodeRb, "register_instance", nodeRb_registerInstance, 1);
+//    rb_define_singleton_method(nodeRb, "unregister_instance", nodeRb_unregisterInstance, 1);
     // Modules
     VALUE nodeRbModules = rb_define_module_under(nodeRb, "Modules");
 }

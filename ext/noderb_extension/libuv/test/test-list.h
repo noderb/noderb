@@ -36,6 +36,10 @@ TEST_DECLARE   (tcp_bind6_error_addrnotavail)
 TEST_DECLARE   (tcp_bind6_error_fault)
 TEST_DECLARE   (tcp_bind6_error_inval)
 TEST_DECLARE   (tcp_bind6_localhost_ok)
+TEST_DECLARE   (udp_send_and_recv)
+TEST_DECLARE   (udp_dgram_too_big)
+TEST_DECLARE   (udp_dual_stack)
+TEST_DECLARE   (udp_ipv6_only)
 TEST_DECLARE   (pipe_bind_error_addrinuse)
 TEST_DECLARE   (pipe_bind_error_addrnotavail)
 TEST_DECLARE   (pipe_bind_error_inval)
@@ -60,13 +64,21 @@ TEST_DECLARE   (hrtime)
 TEST_DECLARE   (getaddrinfo_basic)
 TEST_DECLARE   (getaddrinfo_concurrent)
 TEST_DECLARE   (gethostbyname)
-TEST_DECLARE   (getsockname)
+TEST_DECLARE   (getsockname_tcp)
+TEST_DECLARE   (getsockname_udp)
 TEST_DECLARE   (fail_always)
 TEST_DECLARE   (pass_always)
 TEST_DECLARE   (spawn_exit_code)
 TEST_DECLARE   (spawn_stdout)
 TEST_DECLARE   (spawn_stdin)
 TEST_DECLARE   (spawn_and_kill)
+TEST_DECLARE   (fs_file_async)
+TEST_DECLARE   (fs_file_sync)
+TEST_DECLARE   (fs_async_dir)
+TEST_DECLARE   (fs_async_sendfile)
+TEST_DECLARE   (fs_fstat)
+TEST_DECLARE   (fs_chmod)
+TEST_DECLARE   (threadpool_queue_work_simple)
 #ifdef _WIN32
 TEST_DECLARE   (spawn_detect_pipe_name_collisions_on_windows)
 TEST_DECLARE   (argument_escaping)
@@ -105,6 +117,11 @@ TASK_LIST_START
   TEST_ENTRY  (tcp_bind6_error_fault)
   TEST_ENTRY  (tcp_bind6_error_inval)
   TEST_ENTRY  (tcp_bind6_localhost_ok)
+
+  TEST_ENTRY  (udp_send_and_recv)
+  TEST_ENTRY  (udp_dgram_too_big)
+  TEST_ENTRY  (udp_dual_stack)
+  TEST_ENTRY  (udp_ipv6_only)
 
   TEST_ENTRY  (pipe_bind_error_addrinuse)
   TEST_ENTRY  (pipe_bind_error_addrnotavail)
@@ -147,7 +164,8 @@ TASK_LIST_START
   TEST_ENTRY  (gethostbyname)
   TEST_HELPER (gethostbyname, tcp4_echo_server)
 
-  TEST_ENTRY  (getsockname)
+  TEST_ENTRY  (getsockname_tcp)
+  TEST_ENTRY  (getsockname_udp)
 
   TEST_ENTRY  (spawn_exit_code)
   TEST_ENTRY  (spawn_stdout)
@@ -158,6 +176,15 @@ TASK_LIST_START
   TEST_ENTRY  (argument_escaping)
   TEST_ENTRY  (environment_creation)
 #endif
+
+  TEST_ENTRY  (fs_file_async)
+  TEST_ENTRY  (fs_file_sync)
+  TEST_ENTRY  (fs_async_dir)
+  TEST_ENTRY  (fs_async_sendfile)
+  TEST_ENTRY  (fs_fstat)
+  TEST_ENTRY  (fs_chmod)
+
+  TEST_ENTRY  (threadpool_queue_work_simple)
 
 #if 0
   /* These are for testing the test runner. */

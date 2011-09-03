@@ -21,6 +21,7 @@ void nodeRb_tcp_on_close(uv_handle_t* client) {
     // Allow GC of handler instance
     nodeRb_unregister_instance(object);
     rb_iv_set(object, "@_handle", Qnil);
+    rb_iv_set(object, "@_proxy_target", Qnil);
     // Clean up some memory
     free(client_data);
     free(client);
@@ -48,7 +49,7 @@ VALUE nodeRb_tcp_send_data(VALUE self, VALUE data) {
     uv_stream_t *handle;
     Data_Get_Struct(rb_iv_get(self, "@_handle"), uv_stream_t, handle);
     // Request write to stream
-    nodeRb_write(handle, rb_string_value_cstr(&data), RSTRING_LEN(data));
+    nodeRb_write(handle, rb_string_value_ptr(&data), RSTRING_LEN(data));
 }
 
 /*
@@ -59,6 +60,7 @@ void nodeRb_tcp_on_client_connect(uv_connect_t* client, int status) {
     nodeRb_client *client_data = client->handle->data;
     VALUE obj = nodeRb_get_class_from_id(client_data->target);
     rb_iv_set(obj, "@_handle", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, client->handle));
+    rb_iv_set(obj, "@_proxy_target", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, client->handle));
     rb_funcall(obj, rb_intern("on_connect"), 0, 0);
     uv_read_start((uv_stream_t*) client->handle, nodeRb_read_alloc, nodeRb_read);
 }
@@ -66,7 +68,7 @@ void nodeRb_tcp_on_client_connect(uv_connect_t* client, int status) {
 VALUE nodeRb_tcp_startClient(VALUE self, VALUE address, VALUE port, VALUE clazz) {
     // Allocate memory for connection
     uv_tcp_t *handle = malloc(sizeof (uv_tcp_t));
-    uv_tcp_init(handle);
+    uv_tcp_init(uv_default_loop(), handle);
     uv_connect_t *connect = malloc(sizeof (uv_connect_t));
     // Translate IP address
     struct sockaddr_in socket = uv_ip4_addr(rb_string_value_cstr(&address), (int) rb_num2long(port));
@@ -89,7 +91,7 @@ void nodeRb_tcp_on_server_connect(uv_stream_t* server, int status) {
     nodeRb_client *client_data = malloc(sizeof (nodeRb_client));
     // Allocate for client
     uv_stream_t *client = malloc(sizeof (uv_tcp_t));
-    uv_tcp_init((uv_tcp_t*) client);
+    uv_tcp_init(uv_default_loop(), (uv_tcp_t*) client);
     // Accept connection
     int r = uv_accept(server, client);
     if (nodeRb_handle_error(r)) return;
@@ -98,21 +100,23 @@ void nodeRb_tcp_on_server_connect(uv_stream_t* server, int status) {
     VALUE obj = rb_funcall(clazz, rb_intern("new"), 0, 0);
     // Be safe from GC
     nodeRb_register_instance(obj);
-    // Call callback
-    rb_funcall(obj, rb_intern("on_connect"), 0, 0);
     // Save client data with this connection handler instance
     rb_iv_set(obj, "@_handle", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, client));
+    rb_iv_set(obj, "@_proxy_target", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, client));
     // Get object id of handler instance
     client_data->target = rb_num2long(rb_obj_id(obj));
     client_data->target_callback = (char*) "on_data";
     client->data = client_data;
+    // Call callback
+    rb_funcall(obj, rb_intern("on_connect"), 0, 0);
+    // Listen for incoming data
     uv_read_start(client, nodeRb_read_alloc, nodeRb_read);
 }
 
 VALUE nodeRb_tcp_startServer(VALUE self, VALUE address, VALUE port, VALUE clazz) {
     // Allocate for server
     uv_tcp_t *server = malloc(sizeof (uv_tcp_t));
-    uv_tcp_init(server);
+    uv_tcp_init(uv_default_loop(), server);
     // Translate IP address
     struct sockaddr_in socket = uv_ip4_addr(rb_string_value_cstr(&address), (int) rb_num2long(port));
     // Bind on socket

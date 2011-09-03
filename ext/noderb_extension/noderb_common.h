@@ -4,7 +4,8 @@
 #define NODERB_BASIC_HANDLE \
     long target; \
     char* target_callback; \
-    void* proxy;
+    int proxy_enabled; \
+    void* proxy_target;
 
 typedef struct {
     NODERB_BASIC_HANDLE

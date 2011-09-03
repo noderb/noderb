@@ -15,22 +15,27 @@ To build via Makefile simply execute:
 
     make
 
-To build with Visual Studio run the create-msvs-files.bat file which will
-checkout the GYP code into build/gyp and generate the build/all.sln and
+To build with Visual Studio run the vcbuilds.bat file which will
+checkout the GYP code into build/gyp and generate the uv.sln and
 related files.
+
+Windows users can also build from cmd-line using msbuild.  This is 
+done by running vcbuild.bat from Visual Studio command prompt.
 
 To have GYP generate build script for another system you will need to
 checkout GYP into the project tree manually:
 
     svn co http://gyp.googlecode.com/svn/trunk build/gyp
 
-And then run 
+Unix users run
 
-    ./build/gyp_uv -f make
+    ./gyp_uv -f make
+    make
 
-or 
+Macintosh users run
 
-    ./build/gyp_uv -f xcode
+    ./gyp_uv -f xcode
+    xcodebuild -project uv.xcodeproj -configuration Release -target All
 
 
 = Supported Platforms
