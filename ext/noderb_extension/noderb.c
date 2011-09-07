@@ -54,19 +54,20 @@ void Init_noderb_extension() {
     //rb_define_singleton_method(nodeRb, "defer_native", nodeRb_defer, 2);
     // Filesystem functions
     VALUE nodeRbFile = rb_define_module_under(nodeRb, "File");
-    rb_define_method(nodeRbFile, "open_native", nodeRb_fs_open, 3);
-    rb_define_method(nodeRbFile, "close_native", nodeRb_fs_close, 0);
-    rb_define_method(nodeRbFile, "read_native", nodeRb_fs_read, 2);
-    rb_define_method(nodeRbFile, "write_native", nodeRb_fs_write, 1);
+    VALUE nodeRbFS = rb_define_class_under(nodeRb, "FileSystem", rb_cObject);
+    // File operations
+    rb_define_method(nodeRbFile, "operation_native", nodeRb_fs_file_operation, 2);
+    // Filesystem operations
+    rb_define_singleton_method(nodeRbFS, "fs_native", nodeRb_fs_operation, 4);
     // Define starting methods
     rb_define_singleton_method(nodeRb, "start", nodeRb_start, 0);
     rb_define_singleton_method(nodeRb, "start_server_native", nodeRb_tcp_startServer, 3);
     rb_define_singleton_method(nodeRb, "start_client_native", nodeRb_tcp_startClient, 3);
     rb_define_singleton_method(nodeRb, "start_process", nodeRb_startProcess, 5);
     // Memory management
-//    rb_iv_set(nodeRb, "@instances", rb_ary_new());
-//    rb_define_singleton_method(nodeRb, "register_instance", nodeRb_registerInstance, 1);
-//    rb_define_singleton_method(nodeRb, "unregister_instance", nodeRb_unregisterInstance, 1);
+    rb_iv_set(nodeRb, "@instances", rb_ary_new());
+    rb_define_singleton_method(nodeRb, "register_instance", nodeRb_registerInstance, 1);
+    rb_define_singleton_method(nodeRb, "unregister_instance", nodeRb_unregisterInstance, 1);
     // Modules
     VALUE nodeRbModules = rb_define_module_under(nodeRb, "Modules");
 }

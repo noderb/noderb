@@ -117,8 +117,7 @@ VALUE nodeRb_nextTick(VALUE self) {
 
 // Register object to be GC safe
 VALUE nodeRb_register_instance(VALUE instance) {
-    rb_funcall(nodeRb_get_nodeRb_module(), rb_intern("register_instance"), 1, instance);
-    //rb_ary_push(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
+    rb_ary_push(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
 }
 
 // Ruby wrapper for previous function
@@ -128,8 +127,7 @@ VALUE nodeRb_registerInstance(VALUE self, VALUE instance) {
 
 // Unregister object to be GC safe
 VALUE nodeRb_unregister_instance(VALUE instance) {
-    rb_funcall(nodeRb_get_nodeRb_module(), rb_intern("unregister_instance"), 1, instance);
-    //rb_ary_delete(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
+    rb_ary_delete(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
 }
 
 // Ruby wrapper for previous function
