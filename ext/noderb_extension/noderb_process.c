@@ -5,9 +5,9 @@
 
 typedef struct {
     NODERB_BASIC_HANDLE
-    uv_pipe_t* stdout;
-    uv_pipe_t* stdin;
-    uv_pipe_t* stderr;
+    uv_pipe_t* stdo;
+    uv_pipe_t* stdi;
+    uv_pipe_t* stde;
 } nodeRb_process_handle;
 
 typedef struct {
@@ -16,9 +16,9 @@ typedef struct {
 
 void nodeRb_process_close(uv_handle_t* handle) {
     nodeRb_process_handle* process_handle = (nodeRb_process_handle*) handle->data;
-    free(process_handle->stdin);
-    free(process_handle->stdout);
-    free(process_handle->stderr);
+    free(process_handle->stdi);
+    free(process_handle->stdo);
+    free(process_handle->stde);
     free(process_handle);
     free(handle);
 }
@@ -34,7 +34,7 @@ VALUE nodeRb_process_write(VALUE self, VALUE data) {
     // Get process handle
     nodeRb_process_handle* process_handle = (nodeRb_process_handle*) handle->data;
     // Write data to stream
-    nodeRb_write((uv_stream_t*) process_handle->stdin, buffer, sizeof(buffer));
+    nodeRb_write((uv_stream_t*) process_handle->stdi, buffer, sizeof(buffer));
 }
 
 VALUE nodeRb_process_kill(VALUE self, VALUE signal) {
@@ -89,28 +89,28 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     // Be safe of GC
     nodeRb_register_instance(clazz);
     // stdin
-    uv_pipe_t* stdin = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(uv_default_loop(), stdin);
-    options.stdin_stream = stdin;
-    process_handle->stdin = stdin;
+    uv_pipe_t* stdi = malloc(sizeof(uv_pipe_t));
+    uv_pipe_init(uv_default_loop(), stdi);
+    options.stdin_stream = stdi;
+    process_handle->stdi = stdi;
     // stdout
-    uv_pipe_t* stdout = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(uv_default_loop(), stdout);
-    options.stdout_stream = stdout;
+    uv_pipe_t* stdo = malloc(sizeof(uv_pipe_t));
+    uv_pipe_init(uv_default_loop(), stdo);
+    options.stdout_stream = stdo;
     nodeRb_process_read_handle* stdout_handle = malloc(sizeof(nodeRb_process_read_handle));
     stdout_handle->target = process_handle->target;
     stdout_handle->target_callback = (char*) "on_stdout";
-    stdout->data = stdout_handle;
-    process_handle->stdout = stdout;
+    stdo->data = stdout_handle;
+    process_handle->stdo = stdo;
     // stderr
-    uv_pipe_t* stderr = malloc(sizeof(uv_pipe_t));
-    uv_pipe_init(uv_default_loop(), stderr);
-    options.stderr_stream = stderr;
+    uv_pipe_t* stde = malloc(sizeof(uv_pipe_t));
+    uv_pipe_init(uv_default_loop(), stde);
+    options.stderr_stream = stde;
     nodeRb_process_read_handle* stderr_handle = malloc(sizeof(nodeRb_process_read_handle));
     stderr_handle->target = process_handle->target;
     stderr_handle->target_callback = (char*) "on_stderr";
-    stderr->data = stderr_handle;
-    process_handle->stderr = stderr;
+    stde->data = stderr_handle;
+    process_handle->stde = stde;
     // libuv handle
     uv_process_t* handle = malloc(sizeof(uv_process_t));
     handle->data = process_handle;
@@ -119,8 +119,8 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     // spawn process
     uv_spawn(uv_default_loop(), handle, options);
     // Listen to stdout/err
-    uv_read_start((uv_stream_t*) stdout, nodeRb_read_alloc, nodeRb_read);
-    uv_read_start((uv_stream_t*) stderr, nodeRb_read_alloc, nodeRb_read);
+    uv_read_start((uv_stream_t*) stdo, nodeRb_read_alloc, nodeRb_read);
+    uv_read_start((uv_stream_t*) stde, nodeRb_read_alloc, nodeRb_read);
     // call back ruby
     rb_funcall(clazz, rb_intern("on_start"), 0);
 };

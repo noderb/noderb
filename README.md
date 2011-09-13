@@ -152,6 +152,10 @@ Schedules new repeated event that will be called every *timeout* seconds.
 
 ## Changelog
 
+### 0.0.6
+
+* FileSystem support
+
 ### 0.0.4
 
 * Hostname resolution
@@ -160,11 +164,7 @@ Schedules new repeated event that will be called every *timeout* seconds.
 
 ## Compatibility
 
-* Full
-** Ruby 1.8
-** Ruby 1.9
-* Preliminary
-** Rubinius
+* Ruby 1.9
 
 ## Dependencies
 
