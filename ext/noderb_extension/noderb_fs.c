@@ -107,8 +107,7 @@ VALUE nodeRb_fs_operation(VALUE self, VALUE roperation, VALUE path, VALUE params
         case 10:
             {
                 VALUE new_path = rb_ary_entry(params, 0);
-                // (int) rb_num2long(rb_ary_entry(params, 1))
-                uv_fs_symlink(uv_default_loop(), handle, rb_string_value_cstr(&path), rb_string_value_cstr(&new_path), nodeRb_fs_operation_callback);
+                uv_fs_symlink(uv_default_loop(), handle, rb_string_value_cstr(&path), rb_string_value_cstr(&new_path), (int) rb_num2long(rb_ary_entry(params, 1)), nodeRb_fs_operation_callback);
             }
             break;
         case 11:

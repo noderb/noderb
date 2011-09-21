@@ -1,16 +1,18 @@
 require "mkmf"
 
-cflags = " -shared "
+cflags = " -shared -fPIC "
 
 if $solaris
   cflags = " -G -fPIC "
   # From EventMachine
   CONFIG['LDSHARED'] = "$(CXX) -G -fPIC"
   if CONFIG['CC'] == 'cc'
-    $CFLAGS = CONFIG['CFLAGS'] = "-g -O2 -fPIC"
+    cflags = "-g -O2 -fPIC"
     CONFIG['CCDLFLAGS'] = "-fPIC"
   end
 end
+
+$CFLAGS = CONFIG['CFLAGS'] = cflags
 
 `cd libuv; CFLAGS="#{cflags}" make; cd ..; cp libuv/uv.a libuv.a`
 

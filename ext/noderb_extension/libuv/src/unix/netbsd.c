@@ -1,5 +1,4 @@
 /* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
  * deal in the Software without restriction, including without limitation the
@@ -20,66 +19,50 @@
  */
 
 #include "uv.h"
-#include "task.h"
 
+#include <string.h>
+#include <time.h>
 
-TEST_IMPL(ref) {
-  uv_run(uv_default_loop());
-  return 0;
+#include <sys/types.h>
+#include <sys/sysctl.h>
+
+#include <unistd.h>
+
+#undef NANOSEC
+#define NANOSEC 1000000000
+
+uint64_t uv_hrtime(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (ts.tv_sec * NANOSEC + ts.tv_nsec);
 }
 
 
-TEST_IMPL(idle_ref) {
-  uv_idle_t h;
-  uv_idle_init(uv_default_loop(), &h);
-  uv_idle_start(&h, NULL);
-  uv_unref(uv_default_loop());
-  uv_run(uv_default_loop());
-  return 0;
-}
+int uv_exepath(char* buffer, size_t* size) {
+  uint32_t usize;
+  int result;
+  char* path;
+  char* fullpath;
+  int mib[4];
+  size_t cb;
+  pid_t mypid;
 
+  if (!buffer || !size) {
+    return -1;
+  }
 
-TEST_IMPL(async_ref) {
-  uv_async_t h;
-  uv_async_init(uv_default_loop(), &h, NULL);
-  uv_unref(uv_default_loop());
-  uv_run(uv_default_loop());
-  return 0;
-}
+  mypid = getpid();
+  mib[0] = CTL_KERN;
+  mib[1] = KERN_PROC_ARGS;
+  mib[2] = mypid;
+  mib[3] = KERN_PROC_ARGV;
 
+  cb = *size;
+  if (sysctl(mib, 4, buffer, &cb, NULL, 0) < 0) {
+    *size = 0;
+    return -1;
+  }
+  *size = strlen(buffer);
 
-TEST_IMPL(prepare_ref) {
-  uv_prepare_t h;
-  uv_prepare_init(uv_default_loop(), &h);
-  uv_prepare_start(&h, NULL);
-  uv_unref(uv_default_loop());
-  uv_run(uv_default_loop());
-  return 0;
-}
-
-
-TEST_IMPL(check_ref) {
-  uv_check_t h;
-  uv_check_init(uv_default_loop(), &h);
-  uv_check_start(&h, NULL);
-  uv_unref(uv_default_loop());
-  uv_run(uv_default_loop());
-  return 0;
-}
-
-
-static void prepare_cb(uv_prepare_t* handle, int status) {
-  ASSERT(handle != NULL);
-  ASSERT(status == 0);
-
-  uv_unref(uv_default_loop());
-}
-
-
-TEST_IMPL(unref_in_prepare_cb) {
-  uv_prepare_t h;
-  uv_prepare_init(uv_default_loop(), &h);
-  uv_prepare_start(&h, prepare_cb);
-  uv_run(uv_default_loop());
   return 0;
 }

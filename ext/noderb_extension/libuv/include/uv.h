@@ -49,6 +49,7 @@ typedef struct uv_stream_s uv_stream_t;
 typedef struct uv_tcp_s uv_tcp_t;
 typedef struct uv_udp_s uv_udp_t;
 typedef struct uv_pipe_s uv_pipe_t;
+typedef struct uv_tty_s uv_tty_t;
 typedef struct uv_timer_s uv_timer_t;
 typedef struct uv_prepare_s uv_prepare_t;
 typedef struct uv_check_s uv_check_t;
@@ -81,10 +82,9 @@ typedef struct uv_work_s uv_work_t;
  * All callbacks in libuv are made asynchronously. That is they are never
  * made by the function that takes them as a parameter.
  */
-void uv_init();
 uv_loop_t* uv_loop_new();
-
 void uv_loop_delete(uv_loop_t*);
+
 
 /*
  * Returns the default loop.
@@ -172,6 +172,7 @@ typedef enum {
   UV_ENOTCONN,
   UV_ENOTSOCK,
   UV_ENOTSUP,
+  UV_ENOENT,
   UV_EPIPE,
   UV_EPROTO,
   UV_EPROTONOSUPPORT,
@@ -182,7 +183,8 @@ typedef enum {
   UV_EAINONAME,
   UV_EAISERVICE,
   UV_EAISOCKTYPE,
-  UV_ESHUTDOWN
+  UV_ESHUTDOWN,
+  UV_EEXIST
 } uv_err_code;
 
 typedef enum {
@@ -199,7 +201,6 @@ typedef enum {
   UV_ASYNC,
   UV_ARES_TASK,
   UV_ARES_EVENT,
-  UV_GETADDRINFO,
   UV_PROCESS
 } uv_handle_type;
 
@@ -214,6 +215,7 @@ typedef enum {
   UV_UDP_SEND,
   UV_FS,
   UV_WORK,
+  UV_GETADDRINFO,
   UV_REQ_TYPE_PRIVATE
 } uv_req_type;
 
@@ -324,7 +326,7 @@ uv_buf_t uv_buf_init(char* base, size_t len);
  *
  * uv_stream is an abstract class.
  *
- * uv_stream_t is the parent class of uv_tcp_t, uv_pipe_t
+ * uv_stream_t is the parent class of uv_tcp_t, uv_pipe_t, uv_tty_t
  * and soon uv_file_t.
  */
 struct uv_stream_s {
@@ -415,6 +417,8 @@ int uv_tcp_init(uv_loop_t*, uv_tcp_t* handle);
 
 int uv_tcp_bind(uv_tcp_t* handle, struct sockaddr_in);
 int uv_tcp_bind6(uv_tcp_t* handle, struct sockaddr_in6);
+int uv_tcp_getsockname(uv_tcp_t* handle, struct sockaddr* name, int* namelen);
+int uv_tcp_getpeername(uv_tcp_t* handle, struct sockaddr* name, int* namelen);
 
 /*
  * uv_tcp_connect, uv_tcp_connect6
@@ -434,9 +438,6 @@ struct uv_connect_s {
   uv_stream_t* handle;
   UV_CONNECT_PRIVATE_FIELDS
 };
-
-
-int uv_getsockname(uv_handle_t* handle, struct sockaddr* name, int* namelen);
 
 
 /*
@@ -521,6 +522,7 @@ int uv_udp_bind(uv_udp_t* handle, struct sockaddr_in addr, unsigned flags);
  *  0 on success, -1 on error.
  */
 int uv_udp_bind6(uv_udp_t* handle, struct sockaddr_in6 addr, unsigned flags);
+int uv_udp_getsockname(uv_udp_t* handle, struct sockaddr* name, int* namelen);
 
 /*
  * Send data. If the socket has not previously been bound with `uv_udp_bind`
@@ -588,6 +590,25 @@ int uv_udp_recv_stop(uv_udp_t* handle);
 
 
 /*
+ * uv_tty_t is a subclass of uv_stream_t
+ *
+ * Representing a stream for the console.
+ */
+struct uv_tty_s {
+  UV_HANDLE_FIELDS
+  UV_STREAM_FIELDS
+  UV_TTY_PRIVATE_FIELDS
+};
+
+int uv_tty_init(uv_loop_t*, uv_tty_t*, uv_file fd);
+
+/*
+ * Set mode. 0 for normal, 1 for raw.
+ */
+int uv_tty_set_mode(uv_tty_t*, int mode);
+
+
+/*
  * uv_pipe_t is a subclass of uv_stream_t
  *
  * Representing a pipe stream or pipe server. On Windows this is a Named
@@ -600,6 +621,11 @@ struct uv_pipe_s {
 };
 
 int uv_pipe_init(uv_loop_t*, uv_pipe_t* handle);
+
+/*
+ * Opens an existing file descriptor or HANDLE as a pipe.
+ */
+void uv_pipe_open(uv_pipe_t*, uv_file file);
 
 int uv_pipe_bind(uv_pipe_t* handle, const char* name);
 
@@ -736,14 +762,14 @@ void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 
 
 /*
- * uv_getaddrinfo_t is a subclass of uv_handle_t
- *
- * TODO this should be a subclass of uv_req_t
+ * uv_getaddrinfo_t is a subclass of uv_req_t
  *
  * Request object for uv_getaddrinfo.
  */
 struct uv_getaddrinfo_s {
-  UV_HANDLE_FIELDS
+  UV_REQ_FIELDS
+  /* read-only */
+  uv_loop_t* loop; \
   UV_GETADDRINFO_PRIVATE_FIELDS
 };
 
@@ -890,6 +916,7 @@ struct uv_fs_s {
   uv_fs_cb cb;
   ssize_t result;
   void* ptr;
+  char* path;
   int errorno;
   UV_FS_PRIVATE_FIELDS
 };
@@ -948,8 +975,14 @@ int uv_fs_lstat(uv_loop_t* loop, uv_fs_t* req, const char* path, uv_fs_cb cb);
 int uv_fs_link(uv_loop_t* loop, uv_fs_t* req, const char* path,
     const char* new_path, uv_fs_cb cb);
 
+/* 
+ * This flag can be used with uv_fs_symlink on Windows
+ * to specify whether path argument points to a directory.
+ */
+#define UV_FS_SYMLINK_DIR          0x0001
+
 int uv_fs_symlink(uv_loop_t* loop, uv_fs_t* req, const char* path,
-    const char* new_path, uv_fs_cb cb);
+    const char* new_path, int flags, uv_fs_cb cb);
 
 int uv_fs_readlink(uv_loop_t* loop, uv_fs_t* req, const char* path,
     uv_fs_cb cb);
@@ -1019,6 +1052,7 @@ struct uv_counters_s {
   uint64_t tcp_init;
   uint64_t udp_init;
   uint64_t pipe_init;
+  uint64_t tty_init;
   uint64_t prepare_init;
   uint64_t check_init;
   uint64_t idle_init;

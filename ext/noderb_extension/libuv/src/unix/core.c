@@ -18,10 +18,6 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE /* O_CLOEXEC, accept4(), etc. */
-#endif
-
 #include "uv.h"
 #include "unix/internal.h"
 
@@ -41,26 +37,6 @@
 #include <arpa/inet.h>
 #include <limits.h> /* PATH_MAX */
 #include <sys/uio.h> /* writev */
-
-#if defined(__linux__)
-
-#include <linux/version.h>
-#include <features.h>
-
-#undef HAVE_PIPE2
-#undef HAVE_ACCEPT4
-
-/* pipe2() requires linux >= 2.6.27 and glibc >= 2.9 */
-#if LINUX_VERSION_CODE >= 0x2061B && __GLIBC_PREREQ(2, 9)
-#define HAVE_PIPE2
-#endif
-
-/* accept4() requires linux >= 2.6.28 and glib >= 2.10 */
-#if LINUX_VERSION_CODE >= 0x2061C && __GLIBC_PREREQ(2, 10)
-#define HAVE_ACCEPT4
-#endif
-
-#endif /* __linux__ */
 
 #ifdef __sun
 # include <sys/types.h>
@@ -87,17 +63,6 @@ static void uv__finish_close(uv_handle_t* handle);
 #ifndef __GNUC__
 #define __attribute__(a)
 #endif
-
-
-void uv_init() {
-  default_loop_ptr = &default_loop_struct;
-#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-  default_loop_struct.ev = ev_default_loop(EVBACKEND_KQUEUE);
-#else
-  default_loop_struct.ev = ev_default_loop(EVFLAG_AUTO);
-#endif
-  ev_set_userdata(default_loop_struct.ev, default_loop_ptr);
-}
 
 
 void uv_close(uv_handle_t* handle, uv_close_cb close_cb) {
@@ -200,6 +165,15 @@ void uv_loop_delete(uv_loop_t* loop) {
 
 
 uv_loop_t* uv_default_loop() {
+  if (!default_loop_ptr) {
+    default_loop_ptr = &default_loop_struct;
+#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+    default_loop_struct.ev = ev_default_loop(EVBACKEND_KQUEUE);
+#else
+    default_loop_struct.ev = ev_default_loop(EVFLAG_AUTO);
+#endif
+    ev_set_userdata(default_loop_struct.ev, default_loop_ptr);
+  }
   assert(default_loop_ptr->ev == EV_DEFAULT_UC);
   return default_loop_ptr;
 }
@@ -259,6 +233,8 @@ void uv__finish_close(uv_handle_t* handle) {
     case UV_TCP:
       assert(!ev_is_active(&((uv_stream_t*)handle)->read_watcher));
       assert(!ev_is_active(&((uv_stream_t*)handle)->write_watcher));
+      assert(((uv_stream_t*)handle)->fd == -1);
+      uv__stream_destroy((uv_stream_t*)handle);
       break;
 
     case UV_UDP:
@@ -300,27 +276,6 @@ void uv__next(EV_P_ ev_idle* watcher, int revents) {
 }
 
 
-int uv_getsockname(uv_handle_t* handle, struct sockaddr* name, int* namelen) {
-  socklen_t socklen;
-  int saved_errno;
-
-  /* Don't clobber errno. */
-  saved_errno = errno;
-
-  /* sizeof(socklen_t) != sizeof(int) on some systems. */
-  socklen = (socklen_t)*namelen;
-
-  if (getsockname(handle->fd, name, &socklen) == -1) {
-    uv_err_new(handle->loop, errno);
-  } else {
-    *namelen = (int)socklen;
-  }
-
-  errno = saved_errno;
-  return 0;
-}
-
-
 void uv_ref(uv_loop_t* loop) {
   ev_ref(loop->ev);
 }
@@ -344,7 +299,6 @@ int64_t uv_now(uv_loop_t* loop) {
 void uv__req_init(uv_req_t* req) {
   /* loop->counters.req_init++; */
   req->type = UV_UNKNOWN_REQ;
-  req->data = NULL;
 }
 
 
@@ -653,7 +607,7 @@ static void getaddrinfo_thread_proc(eio_req *req) {
 
 
 /* stub implementation of uv_getaddrinfo */
-int uv_getaddrinfo(uv_loop_t* loop, 
+int uv_getaddrinfo(uv_loop_t* loop,
                    uv_getaddrinfo_t* handle,
                    uv_getaddrinfo_cb cb,
                    const char* hostname,
@@ -668,7 +622,10 @@ int uv_getaddrinfo(uv_loop_t* loop,
     return -1;
   }
 
-  memset(handle, 0, sizeof(uv_getaddrinfo_t));
+  uv__req_init((uv_req_t*)handle);
+  handle->type = UV_GETADDRINFO;
+  handle->loop = loop;
+  handle->cb = cb;
 
   /* TODO don't alloc so much. */
 
@@ -679,10 +636,10 @@ int uv_getaddrinfo(uv_loop_t* loop,
 
   /* TODO security! check lengths, check return values. */
 
-  handle->loop = loop;
-  handle->cb = cb;
   handle->hostname = hostname ? strdup(hostname) : NULL;
   handle->service = service ? strdup(service) : NULL;
+  handle->res = NULL;
+  handle->retcode = 0;
 
   /* TODO check handle->hostname == NULL */
   /* TODO check handle->service == NULL */
@@ -810,10 +767,8 @@ size_t uv__strlcpy(char* dst, const char* src, size_t size) {
   }
 
   org = src;
-  while (size > 1) {
-    if ((*dst++ = *src++) == '\0') {
-      return org - src;
-    }
+  while (--size && *src) {
+    *dst++ = *src++;
   }
   *dst = '\0';
 
