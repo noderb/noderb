@@ -14,7 +14,7 @@ end
 
 $CFLAGS = CONFIG['CFLAGS'] = cflags
 
-`cd libuv; CFLAGS="#{cflags}" make; cd ..; cp libuv/uv.a libuv.a`
+`cd libuv; CPPFLAGS="#{cflags}" make; cd ..; cp libuv/uv.a libuv.a` # libuv does not respond to CFLAGS anymore
 
 dir_config("uv", File.expand_path("../libuv/include", __FILE__), File.expand_path("../libuv", __FILE__))
 
