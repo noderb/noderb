@@ -25,8 +25,6 @@ VALUE nodeRb_get_nodeRb_pointer(){
 }
 
 void Init_noderb_extension() {
-    // Initialize event loop, but not start it
-    uv_init();
     // Define module
     nodeRb = rb_define_module("NodeRb");
     // Define native pointer

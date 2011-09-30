@@ -20,9 +20,34 @@
  */
 
 #include <assert.h>
+#include <io.h>
 
 #include "uv.h"
 #include "internal.h"
+
+
+uv_handle_type uv_guess_handle(uv_file file) {
+  HANDLE handle = (HANDLE) _get_osfhandle(file);
+  DWORD mode;
+
+  switch (GetFileType(handle)) {
+    case FILE_TYPE_CHAR:
+      if (GetConsoleMode(handle, &mode)) {
+        return UV_TTY;
+      } else {
+        return UV_UNKNOWN_HANDLE;
+      }
+
+    case FILE_TYPE_PIPE:
+      return UV_NAMED_PIPE;
+
+    case FILE_TYPE_DISK:
+      return UV_FILE;
+
+    default:
+      return UV_UNKNOWN_HANDLE;
+  }
+}
 
 
 int uv_is_active(uv_handle_t* handle) {
@@ -80,6 +105,10 @@ void uv_close(uv_handle_t* handle, uv_close_cb cb) {
       }
       return;
 
+    case UV_TTY:
+      uv_tty_close((uv_tty_t*) handle);
+      return;
+
     case UV_UDP:
       udp = (uv_udp_t*) handle;
       uv_udp_recv_stop(udp);
@@ -120,6 +149,10 @@ void uv_close(uv_handle_t* handle, uv_close_cb cb) {
       uv_process_close(loop, process);
       return;
 
+    case UV_FS_EVENT:
+      uv_fs_event_close(loop, (uv_fs_event_t*)handle);
+      return;
+
     default:
       /* Not supported */
       abort();
@@ -155,6 +188,10 @@ void uv_process_endgames(uv_loop_t* loop) {
         uv_pipe_endgame(loop, (uv_pipe_t*) handle);
         break;
 
+      case UV_TTY:
+        uv_tty_endgame(loop, (uv_tty_t*) handle);
+        break;
+
       case UV_UDP:
         uv_udp_endgame(loop, (uv_udp_t*) handle);
         break;
@@ -175,6 +212,10 @@ void uv_process_endgames(uv_loop_t* loop) {
 
       case UV_PROCESS:
         uv_process_endgame(loop, (uv_process_t*) handle);
+        break;
+
+      case UV_FS_EVENT:
+        uv_fs_event_endgame(loop, (uv_fs_event_t*) handle);
         break;
 
       default:

@@ -86,7 +86,8 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
   UV_GETADDRINFO_REQ,                     \
   UV_PROCESS_EXIT,                        \
   UV_PROCESS_CLOSE,                       \
-  UV_UDP_RECV
+  UV_UDP_RECV,                            \
+  UV_FS_EVENT_REQ
 
 #define UV_REQ_PRIVATE_FIELDS             \
   union {                                 \
@@ -116,6 +117,7 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
     HANDLE pipeHandle;                    \
     struct uv_pipe_accept_s* next_pending; \
   } uv_pipe_accept_t;                     \
+                                          \
   typedef struct uv_tcp_accept_s {        \
     UV_REQ_FIELDS                         \
     SOCKET accept_socket;                 \
@@ -179,6 +181,31 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
     struct { uv_pipe_server_fields };     \
     struct { uv_pipe_connection_fields }; \
   };
+
+/* TODO: put the parser states in an union - TTY handles are always */
+/* half-duplex so read-state can safely overlap write-state. */
+#define UV_TTY_PRIVATE_FIELDS             \
+  HANDLE handle;                          \
+  HANDLE read_line_handle;                \
+  uv_buf_t read_line_buffer;              \
+  HANDLE read_raw_wait;                   \
+  DWORD original_console_mode;            \
+  /* Fields used for translating win */   \
+  /* keystrokes into vt100 characters */  \
+  char last_key[8];                       \
+  unsigned char last_key_offset;          \
+  unsigned char last_key_len;             \
+  INPUT_RECORD last_input_record;         \
+  WCHAR last_utf16_high_surrogate;        \
+  /* utf8-to-utf16 conversion state */    \
+  unsigned char utf8_bytes_left;          \
+  unsigned int utf8_codepoint;            \
+  /* eol conversion state */              \
+  unsigned char previous_eol;             \
+  /* ansi parser state */                 \
+  unsigned char ansi_parser_state;        \
+  unsigned char ansi_csi_argc;            \
+  unsigned short ansi_csi_argv[4];
 
 #define UV_TIMER_PRIVATE_FIELDS           \
   RB_ENTRY(uv_timer_s) tree_entry;        \
@@ -261,8 +288,16 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
 
 #define UV_WORK_PRIVATE_FIELDS            \
 
-
-#define UV_TTY_PRIVATE_FIELDS /* empty */
+#define UV_FS_EVENT_PRIVATE_FIELDS        \
+  struct uv_fs_event_req_s {              \
+    UV_REQ_FIELDS                         \
+  } req;                                  \
+  HANDLE dir_handle;                      \
+  int req_pending;                        \
+  uv_fs_event_cb cb;                      \
+  wchar_t* filew;                         \
+  int is_path_dir;                        \
+  char* buffer;
 
 int uv_utf16_to_utf8(const wchar_t* utf16Buffer, size_t utf16Size,
     char* utf8Buffer, size_t utf8Size);

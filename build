@@ -6,7 +6,7 @@ git clone git://github.com/joyent/libuv.git libuv
 
 cd libuv
 
-git reset --hard 2640aae125e1dc30d81f26a74525cca7806fe76e
+git reset --hard 2c0fca9a4137ffac080654bf64f528ee2b4e6bbc
 
 rm -rf .git
 

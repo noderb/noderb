@@ -87,6 +87,12 @@ static uv_req_t* uv_remove_pending_req(uv_loop_t* loop) {
                                        req);                                  \
         break;                                                                \
                                                                               \
+      case UV_TTY:                                                            \
+        uv_process_tty_##method##_req(loop,                                   \
+                                      (uv_tty_t*) ((req)->handle_at),         \
+                                      req);                                   \
+        break;                                                                \
+                                                                              \
       default:                                                                \
         assert(0);                                                            \
     }                                                                         \
@@ -163,6 +169,10 @@ void uv_process_reqs(uv_loop_t* loop) {
 
       case UV_WORK:
         uv_process_work_req(loop, (uv_work_t*) req);
+        break;
+
+      case UV_FS_EVENT_REQ:
+        uv_process_fs_event_req(loop, req, (uv_fs_event_t*) req->data);
         break;
 
       default:

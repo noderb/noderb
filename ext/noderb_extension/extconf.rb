@@ -1,20 +1,24 @@
 require "mkmf"
 
-cflags = " -shared -fPIC "
+cflags = "-shared -fPIC"
+ldflags = ""
 
-if $solaris
-  cflags = " -G -fPIC "
-  # From EventMachine
-  CONFIG['LDSHARED'] = "$(CXX) -G -fPIC"
-  if CONFIG['CC'] == 'cc'
-    cflags = "-g -O2 -fPIC"
-    CONFIG['CCDLFLAGS'] = "-fPIC"
-  end
+case RUBY_PLATFORM
+  when /solaris/
+    cflags = " -G -fPIC "
+    CONFIG['LDSHARED'] = "$(CXX) -G -fPIC"
+    if CONFIG['CC'] == 'cc'
+      cflags = "-g -O2 -fPIC"
+      CONFIG['CCDLFLAGS'] = "-fPIC"
+    end
+  when /darwin/
+    ldflags = "-framework CoreServices"
 end
 
-$CFLAGS = CONFIG['CFLAGS'] = cflags
+$CFLAGS = CONFIG['CFLAGS'] = " #{cflags} "
+$LDFLAGS = CONFIG['LDFLAGS'] = " #{ldflags} "
 
-`cd libuv; CPPFLAGS="#{cflags}" make; cd ..; cp libuv/uv.a libuv.a` # libuv does not respond to CFLAGS anymore
+`cd libuv; CFLAGS="#{cflags}" make; cd ..; cp libuv/uv.a libuv.a`
 
 dir_config("uv", File.expand_path("../libuv/include", __FILE__), File.expand_path("../libuv", __FILE__))
 

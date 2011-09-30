@@ -7,13 +7,13 @@
 #include <sys/stat.h>
 
 typedef struct {
-    long target;
+    VALUE target;
     char* buffer;
 } nodeRb_file_handle;
 
 void nodeRb_fs_operation_callback(uv_fs_t* handle){
     nodeRb_file_handle* data = (nodeRb_file_handle*) handle->data;
-    VALUE target = nodeRb_get_class_from_id(data->target);
+    VALUE target = data->target;
     if(handle->result == -1){
         rb_funcall(target, rb_intern("call"), 1, Qnil);
     }else{
@@ -63,7 +63,7 @@ void nodeRb_fs_operation_callback(uv_fs_t* handle){
         }
     }
     nodeRb_unregister_instance(target);
-    free(handle->data);
+    free(data);
     uv_fs_req_cleanup(handle);
 }
 
@@ -71,7 +71,8 @@ VALUE nodeRb_fs_operation(VALUE self, VALUE roperation, VALUE path, VALUE params
     uv_fs_t* handle = malloc(sizeof(uv_fs_t));
     nodeRb_file_handle* data = malloc(sizeof(nodeRb_file_handle));
     nodeRb_register_instance(callback);
-    data->target = rb_num2long(rb_obj_id(callback));
+    data->target = callback;
+    handle->data = data;
     long operation = rb_num2long(roperation);
     switch(operation){
         case 0:
@@ -117,12 +118,12 @@ VALUE nodeRb_fs_operation(VALUE self, VALUE roperation, VALUE path, VALUE params
             uv_fs_chown(uv_default_loop(), handle, rb_string_value_cstr(&path), (int) rb_num2long(rb_ary_entry(params, 0)), (int) rb_num2long(rb_ary_entry(params, 1)), nodeRb_fs_operation_callback);
             break;
     }
-    handle->data = data;
 }
 
 void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
+    printf("Test\n");
     nodeRb_file_handle* data = (nodeRb_file_handle*) handle->data;
-    VALUE target = nodeRb_get_class_from_id(data->target);
+    VALUE target = data->target;
     if(handle->result == -1){
         rb_funcall(target, rb_intern("on_error"), 0, 0);
     }else{
@@ -178,7 +179,7 @@ void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
             case UV_FS_OPEN:
                 {
                     uv_file fd = (uv_file) handle->result;
-                    rb_iv_set(target, "@_handle", INT2NUM(fd));
+                    rb_iv_set(target, "@_handle", INT2NUM(fd)); //INT2NUM(fd)
                     rb_funcall(target, rb_intern("on_open"), 0, 0);
                 }
                 break;
@@ -197,7 +198,7 @@ void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
                 break;
         }
     }
-    free(handle->data);
+    free(data);
     uv_fs_req_cleanup(handle);
 }
 
@@ -211,7 +212,8 @@ VALUE nodeRb_fs_file_operation(VALUE self, VALUE roperation, VALUE params){
     uv_fs_t* handle = malloc(sizeof(uv_fs_t));
     nodeRb_file_handle* data = malloc(sizeof(nodeRb_file_handle));
     // Save Ruby data
-    data->target = rb_num2long(rb_obj_id(self));
+    data->target = self;
+    handle->data = data;
     // Open file
     switch(operation){
         case 0:
@@ -272,5 +274,4 @@ VALUE nodeRb_fs_file_operation(VALUE self, VALUE roperation, VALUE params){
             uv_fs_close(uv_default_loop(), handle, fd, nodeRb_fs_file_operation_callback);
             break;
     }
-    handle->data = data;
 }
