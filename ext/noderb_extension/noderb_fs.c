@@ -118,6 +118,7 @@ VALUE nodeRb_fs_operation(VALUE self, VALUE roperation, VALUE path, VALUE params
             uv_fs_chown(uv_default_loop(), handle, rb_string_value_cstr(&path), (int) rb_num2long(rb_ary_entry(params, 0)), (int) rb_num2long(rb_ary_entry(params, 1)), nodeRb_fs_operation_callback);
             break;
     }
+    return self;
 }
 
 void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
@@ -125,32 +126,32 @@ void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
     nodeRb_file_handle* data = (nodeRb_file_handle*) handle->data;
     VALUE target = data->target;
     if(handle->result == -1){
-        rb_funcall(target, rb_intern("on_error"), 0, 0);
+        rb_funcall(target, rb_intern("on_file_error"), 0, 0);
     }else{
         switch(handle->fs_type) {
             case UV_FS_SENDFILE:
-                rb_funcall(target, rb_intern("on_sendfile"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_sendfile"), 0, 0);
                 break;
             case UV_FS_FTRUNCATE:
-                rb_funcall(target, rb_intern("on_truncate"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_truncate"), 0, 0);
                 break;
             case UV_FS_FUTIME:
-                rb_funcall(target, rb_intern("on_utime"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_utime"), 0, 0);
                 break;
             case UV_FS_FCHMOD:
-                rb_funcall(target, rb_intern("on_chmod"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_chmod"), 0, 0);
                 break;
             case UV_FS_FSYNC:
-                rb_funcall(target, rb_intern("on_sync"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_sync"), 0, 0);
                 break;
             case UV_FS_FDATASYNC:
-                rb_funcall(target, rb_intern("on_datasync"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_datasync"), 0, 0);
                 break;
             case UV_FS_FCHOWN:
-                rb_funcall(target, rb_intern("on_chown"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_chown"), 0, 0);
                 break;
             case UV_FS_WRITE:
-                rb_funcall(target, rb_intern("on_write"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_write"), 0, 0);
                 break;
             case UV_FS_FSTAT:
                 {
@@ -173,26 +174,26 @@ void nodeRb_fs_file_operation_callback(uv_fs_t* handle){
                     rb_iv_set(values, "@modified", LONG2NUM(stats->st_mtime));
                     rb_iv_set(values, "@changed", LONG2NUM(stats->st_ctime));
 
-                    rb_funcall(target, rb_intern("on_stat"), 1, values);
+                    rb_funcall(target, rb_intern("on_file_stat"), 1, values);
                 }
                 break;
             case UV_FS_OPEN:
                 {
                     uv_file fd = (uv_file) handle->result;
                     rb_iv_set(target, "@_handle", INT2NUM(fd)); //INT2NUM(fd)
-                    rb_funcall(target, rb_intern("on_open"), 0, 0);
+                    rb_funcall(target, rb_intern("on_file_open"), 0, 0);
                 }
                 break;
             case UV_FS_READ:
                 {
                     int size = (int) handle->result;
                     char* buf = data->buffer;
-                    rb_funcall(target, rb_intern("on_read"), 1, rb_str_new(buf, size));
+                    rb_funcall(target, rb_intern("on_file_read"), 1, rb_str_new(buf, size));
                     free(buf);
                 }
                 break;
             case UV_FS_CLOSE:
-                rb_funcall(target, rb_intern("on_close"), 0, 0);
+                rb_funcall(target, rb_intern("on_file_close"), 0, 0);
                 nodeRb_unregister_instance(target);
                 rb_iv_set(target, "@_handle", Qnil);
                 break;
@@ -274,4 +275,5 @@ VALUE nodeRb_fs_file_operation(VALUE self, VALUE roperation, VALUE params){
             uv_fs_close(uv_default_loop(), handle, fd, nodeRb_fs_file_operation_callback);
             break;
     }
+    return self;
 }

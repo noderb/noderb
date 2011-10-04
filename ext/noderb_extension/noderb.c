@@ -9,6 +9,7 @@
 //#include <noderb_defer.h>
 #include <noderb_fs.h>
 
+#include <signal.h>
 // Core NodeRb module
 VALUE nodeRb;
 // Pointer for saving native data
@@ -24,7 +25,14 @@ VALUE nodeRb_get_nodeRb_pointer(){
     return nodeRbPointer;
 }
 
+void siginthandler(int param)
+{
+  rb_funcall(nodeRb, rb_intern("kill"), 0, 0);
+}
+
 void Init_noderb_extension() {
+    // Exits
+    signal(SIGINT, siginthandler);
     // Define module
     nodeRb = rb_define_module("NodeRb");
     // Define native pointer
@@ -33,11 +41,11 @@ void Init_noderb_extension() {
     VALUE nodeRbConnection = rb_define_module_under(nodeRb, "Connection");
     VALUE nodeRbProcess = rb_define_module_under(nodeRb, "Process");
     // Define connection methods
-    rb_define_method(nodeRbConnection, "write_data", nodeRb_tcp_send_data, 1);
-    rb_define_method(nodeRbConnection, "close_connection", nodeRb_tcp_close_connection, 0);
+    rb_define_method(nodeRbConnection, "connection_write", nodeRb_tcp_send_data, 1);
+    rb_define_method(nodeRbConnection, "connection_close", nodeRb_tcp_close_connection, 0);
     // Define process methods
-    rb_define_method(nodeRbProcess, "write_data", nodeRb_process_write, 1);
-    rb_define_method(nodeRbProcess, "kill_process", nodeRb_process_kill, 1);
+    rb_define_method(nodeRbProcess, "process_write", nodeRb_process_write, 1);
+    rb_define_method(nodeRbProcess, "process_kill", nodeRb_process_kill, 1);
     // Define utility methods
     rb_define_singleton_method(nodeRb, "next_tick_native", nodeRb_nextTick, 0);
     rb_define_singleton_method(nodeRb, "start_proxy", nodeRb_startProxy, 2);

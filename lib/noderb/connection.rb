@@ -1,13 +1,13 @@
 module NodeRb
   module Connection
 
-    def on_connect
+    def on_connection_open
     end
         
-    def on_data data
+    def on_connection_read(data)
     end
 
-    def on_close
+    def on_connection_close
     end
 
   end

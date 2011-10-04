@@ -16,7 +16,7 @@ module NodeRb
   module Timer
 
     def call
-      
+
     end
 
   end

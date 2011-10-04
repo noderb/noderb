@@ -33,4 +33,5 @@ VALUE nodeRb_dns_resolve(VALUE self, VALUE host, VALUE callback){
     handle->data = data;
     // Resolve
     uv_getaddrinfo(uv_default_loop(), handle, nodeRb_dns_resolved, rb_string_value_cstr(&host), NULL, NULL);
+    return self;
 }

@@ -35,18 +35,20 @@ VALUE nodeRb_process_write(VALUE self, VALUE data) {
     nodeRb_process_handle* process_handle = (nodeRb_process_handle*) handle->data;
     // Write data to stream
     nodeRb_write((uv_stream_t*) process_handle->stdi, buffer, sizeof(buffer));
+    return self;
 }
 
 VALUE nodeRb_process_kill(VALUE self, VALUE signal) {
     uv_process_t *handle;
     Data_Get_Struct(rb_iv_get(self, "@_handle"), uv_process_t, handle);
     uv_process_kill(handle, (int) rb_num2int(signal));
+    return self;
 }
 
 void nodeRb_process_exit(uv_process_t* handle, int status, int signal) {
     nodeRb_process_handle* process_handle = (nodeRb_process_handle*) handle->data;
     VALUE clazz = nodeRb_get_class_from_id(process_handle->target);
-    rb_funcall(clazz, rb_intern("on_exit"), 2, rb_int2inum(status), rb_int2inum(signal));
+    rb_funcall(clazz, rb_intern("on_process_close"), 2, rb_int2inum(status), rb_int2inum(signal));
 }
 
 VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE environment, VALUE directory, VALUE clazz) {
@@ -99,7 +101,7 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     options.stdout_stream = stdo;
     nodeRb_process_read_handle* stdout_handle = malloc(sizeof(nodeRb_process_read_handle));
     stdout_handle->target = process_handle->target;
-    stdout_handle->target_callback = (char*) "on_stdout";
+    stdout_handle->target_callback = (char*) "on_process_stdout";
     stdo->data = stdout_handle;
     process_handle->stdo = stdo;
     // stderr
@@ -108,7 +110,7 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     options.stderr_stream = stde;
     nodeRb_process_read_handle* stderr_handle = malloc(sizeof(nodeRb_process_read_handle));
     stderr_handle->target = process_handle->target;
-    stderr_handle->target_callback = (char*) "on_stderr";
+    stderr_handle->target_callback = (char*) "on_process_stderr";
     stde->data = stderr_handle;
     process_handle->stde = stde;
     // libuv handle
@@ -122,5 +124,6 @@ VALUE nodeRb_startProcess(VALUE self, VALUE executable, VALUE arguments, VALUE e
     uv_read_start((uv_stream_t*) stdo, nodeRb_read_alloc, nodeRb_read);
     uv_read_start((uv_stream_t*) stde, nodeRb_read_alloc, nodeRb_read);
     // call back ruby
-    rb_funcall(clazz, rb_intern("on_start"), 0);
+    rb_funcall(clazz, rb_intern("on_process_open"), 0);
+    return self;
 };

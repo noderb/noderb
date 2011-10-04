@@ -74,6 +74,7 @@ VALUE nodeRb_startProxy(VALUE self, VALUE source, VALUE target){
     // Enable proxy
     data->proxy_enabled = 1;
     data->proxy_target = target_handle;
+    return self;
 }
 
 VALUE nodeRb_stopProxy(VALUE self, VALUE source){
@@ -84,6 +85,7 @@ VALUE nodeRb_stopProxy(VALUE self, VALUE source){
     nodeRb_basic_handle* data = (nodeRb_basic_handle*) source_handle->data;
     // Disable proxy
     data->proxy_enabled = 0;
+    return self;
 }
 
 /*
@@ -109,6 +111,7 @@ VALUE nodeRb_nextTick(VALUE self) {
         nodeRbNextTickStatus = 1;
         uv_idle_start(handle, nodeRb_next_tick);
     }
+    return self;
 }
 
 /*
@@ -118,21 +121,25 @@ VALUE nodeRb_nextTick(VALUE self) {
 // Register object to be GC safe
 VALUE nodeRb_register_instance(VALUE instance) {
     rb_ary_push(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
+    return instance;
 }
 
 // Ruby wrapper for previous function
 VALUE nodeRb_registerInstance(VALUE self, VALUE instance) {
     nodeRb_register_instance(instance);
+    return self;
 }
 
 // Unregister object to be GC safe
 VALUE nodeRb_unregister_instance(VALUE instance) {
     rb_ary_delete(rb_iv_get(nodeRb_get_nodeRb_module(), "@instances"), instance);
+    return instance;
 }
 
 // Ruby wrapper for previous function
 VALUE nodeRb_unregisterInstance(VALUE self, VALUE instance) {
     nodeRb_unregister_instance(instance);
+    return self;
 }
 
 // Transforms Ruby Object.object_id back into the Object
@@ -158,4 +165,5 @@ VALUE nodeRb_start(VALUE self) {
         rb_yield(Qnil);
     }
     uv_run(uv_default_loop());
+    return self;
 };

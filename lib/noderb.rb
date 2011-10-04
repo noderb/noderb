@@ -18,3 +18,5 @@ require "noderb/fs"
 # Helpers
 require "noderb/connection"
 require "noderb/process"
+# Tools
+require "noderb/tools"

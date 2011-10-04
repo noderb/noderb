@@ -35,6 +35,7 @@ VALUE nodeRb_timers_stop(VALUE self){
     uv_timer_stop(handle);
     // Let the GC work
     nodeRb_unregister_instance(self);
+    return self;
 }
 
 VALUE nodeRb_timers_once(VALUE self, VALUE timeout, VALUE repeat, VALUE handler){
@@ -55,4 +56,5 @@ VALUE nodeRb_timers_once(VALUE self, VALUE timeout, VALUE repeat, VALUE handler)
     rb_iv_set(handler, "@_handle", Data_Wrap_Struct(nodeRb_get_nodeRb_pointer(), 0, NULL, handle));
     // Schedule
     uv_timer_start(handle, nodeRb_timers_callback, rb_num2long(timeout), rb_num2long(repeat));
+    return self;
 }

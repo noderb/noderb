@@ -1,16 +1,16 @@
 module NodeRb
   module Process
     
-    def on_start pid
+    def on_process_open
     end
     
-    def on_stdout data
+    def on_process_stdout data
     end
     
-    def on_stderr data
+    def on_process_stderr data
     end
     
-    def on_exit status, signal
+    def on_process_close status, signal
     end
   
   end
